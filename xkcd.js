@@ -7,50 +7,35 @@ var EventSource = require('eventsource');
 
 var fetchImage = function (imageName, onsuccess, onerror) {
     var url = "http://imgs.xkcd.com/comics/landing/" + imageName;
-    var fileErrorHandler = function (err, fd) {
-        if (fd) {
-            fs.close(fd, function (err) {
-                console.warn('Error closing file');
-                onerror(err);
-            });
-        } else {
-            onerror(err);
-        }
-    }
-
-    fs.open('./' + imageName, 'w', function (err, fd) {
-        if (err) {
-            onerror(err);
+    http.get(url, function (res) {
+        if (res.statusCode != 200) {
+            fileErrorHandler(new Error('non-200 response'), fd);
             return;
         }
 
-        http.get(url, function (res) {
-            if (res.statusCode != 200) {
-                fileErrorHandler(new Error('non-200 response'), fd);
-                return;
-            }
-
-            res.on('data', function (chunk) {
-                fs.write(fd, chunk, function (err) {
-                    if (err) {
-                        fileErrorHandler(err, fd);
-                        return;
-                    }
-                });
-            });
-
-            res.on('end', function() {
-                fs.close(fd, function (err) {
-                    if (err) {
-                        fileErrorHandler(err, null);
-                    } else {
-                        onsuccess(url);
-                    }
-                });
-            });
-        }).on('error', function (err) {
-            fileErrorHandler(err, fd);
+        var writable = fs.createWriteStream('./' + imageName, { flags: 'w' });
+        writable.on('error', function (err) {
+            onerror(err);
         });
+
+        res.on('data', function (chunk) {
+            var ok = writable.write(chunk);
+
+            // Buffer full. Wait until drain, then write again.
+            if (!ok) {
+                writable.once('drain', function() {
+                    writable.write(chunk);
+                });
+            }
+        });
+
+        res.on('end', function() {
+            writable.end(function() {
+                onsuccess(url);
+            });
+        });
+    }).on('error', function (err) {
+        onerror(err);
     });
 };
 
