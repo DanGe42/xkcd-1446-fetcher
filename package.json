@@ -1,0 +1,17 @@
+{
+  "name": "xkcd-1446-fetcher",
+  "version": "0.0.1",
+  "author": "Daniel Ge <daniel@dge.io>",
+  "scripts": {
+    "start": "node xkcd.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DanGe42/xkcd-1446-fetcher"
+  },
+  "dependencies": {
+    "eventsource": "^0.1.4",
+    "xmlhttprequest": "^1.6.0"
+  },
+  "license": "MIT"
+}
